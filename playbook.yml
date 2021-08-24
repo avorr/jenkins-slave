@@ -1,0 +1,124 @@
+---
+- hosts: all
+  become: True
+  become_user: root
+
+  vars_files:
+    - vars.yml
+  tasks:
+  - name: Add repositoryes
+    block:
+    - name: Add CentOS mirror
+      yum_repository:
+        file: "mirror-centos"
+        name: "mirrorcentos"
+        baseurl: "http://mirror.centos.org/centos/7/os/x86_64/"
+        description: "CentOS mirror"
+        gpgcheck: True
+        gpgkey: "http://mirror.centos.org/centos/7/os/x86_64/RPM-GPG-KEY-CentOS-7"
+        enabled: True
+
+    - name: Add CentOS repo
+      yum_repository:
+        file: "centos"
+        name: "base"
+        baseurl: "http://mirror.centos.org/centos/7/os/$basearch/"
+        description: "CentOS $releasever – Base"
+        gpgcheck: False
+        enabled: True
+
+    - name: Add updates repo
+      yum_repository:
+        file: "centos"
+        name: "updates"
+        baseurl: "http://mirror.centos.org/centos/7/updates/$basearch/"
+        description: "CentOS $releasever – Updates"
+        gpgcheck: False
+        enabled: True
+
+    - name: Add extras repo
+      yum_repository:
+        file: "centos"
+        name: "extras"
+        baseurl: "http://mirror.centos.org/centos/7/extras/$basearch/"
+        description: "CentOS $releasever – Extras"
+        gpgcheck: False
+        enabled: True
+
+    - name: Add EPEL repo
+      yum_repository:
+        file: "rh-repo-dzo-77"
+        name: "EPEL"
+        baseurl: "http://mirror.logol.ru/epel/7/x86_64/"
+        description: "EPEL7"
+        gpgcheck: False
+        enabled: True
+
+  - name: add dns-name in hosts
+    lineinfile:
+      dest: /etc/hosts
+      line: "{{ item }}"
+      state: present
+    loop: "{{ ips_dns }}"
+
+  - name: install packages
+    yum:
+      name:
+        - java-1.8.0-openjdk.x86_64
+        - python3-pip
+        - sshpass
+        - unzip
+        - gcc
+        - python-devel
+        - make
+      state: present
+
+  - name: Change file ownership, group and permissions
+    file:
+      path: "/etc/sysconfig/jenkins-slave"
+      owner: root
+      group: root
+      mode: '0644'
+      state: touch
+
+  - name: truncate jenkins-slave paramfile
+    copy:
+      content: ""
+      dest: "/etc/sysconfig/jenkins-slave"
+      force: True
+      group: root
+      owner: root
+      mode: '0644'
+
+  - name: add jenkins parametrs
+    lineinfile:
+      dest: "/etc/sysconfig/jenkins-slave"
+      line: "{{ item }}"
+      state: present
+    loop: "{{ jenkins_slave_param }}"
+
+  - name: create init.d-script
+    copy:
+      src: "jenkins-slave.init"
+      dest: "/etc/init.d/jenkins-slave"
+      group: root
+      owner: root
+      mode: '755'
+
+  - name: create jenkins-slave service service
+    copy:
+      src: "jenkins-slave.service"
+      dest: "/etc/systemd/system/multi-user.target.wants/jenkins-slave.service"
+      group: root
+      owner: root
+      mode: '0644'
+#    notify:
+#      - daemon reload
+#
+#  handlers:
+  - name: daemon reload
+    service:
+      name: jenkins-slave.service
+      daemon_reload: yes
+      state: restarted
+      enabled: yes

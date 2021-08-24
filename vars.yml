@@ -1,0 +1,10 @@
+jenkins_slave_param: # Ex
+  - JENKINS_WORKDIR="/u01/jenkins_slave"
+  - JENKINS_USER="jenkins"
+  - JENKINS_URL="https://exmple-jenkins/jenkins-cd"
+  - JENKINS_NODENAME="example-host-0001787"
+  - JENKINS_SECRET="312we322oidkqkpd2i3od"
+
+ips_dns: #Ex
+  - 8.8.8.8 google.com
+  - 205.251.242.103 amazon.com
